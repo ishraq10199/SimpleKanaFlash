@@ -506,20 +506,24 @@ const KATAKANA = [
   },
 ];
 
-// ── State ───────────────────────────────────────────────────────────────────
+// ---- State -------------------------------------------------------------------
 
+const jsConfetti = window.confetti;
 let selected = new Set();
 let difficult = loadDifficult();
 let deck = [];
 let cardIndex = 0;
 let revealed = false;
 let direction = "jp2en";
+let sessionWrong = 0;
+let sessionSeen = 0;
+let sessionTotal = 0;
 
 function charKey(type, romaji, kana) {
   return `${type}:${romaji}:${kana}`;
 }
 
-// ── Persist ──────────────────────────────────────────────────────────────────
+// ---- Persist ------------------------------------------------------------------
 
 function loadDifficult() {
   try {
@@ -535,7 +539,7 @@ function saveDifficult() {
   );
 }
 
-// ── Build UI ─────────────────────────────────────────────────────────────────
+// ---- Build UI -----------------------------------------------------------------
 
 function buildGroups() {
   buildSection("hiragana-groups", HIRAGANA, "h", false);
@@ -641,7 +645,28 @@ function showStatus(msg) {
   }, 3000);
 }
 
-// ── Session ──────────────────────────────────────────────────────────────────
+// ---- Session ------------------------------------------------------------------
+
+function showSessionModal(completed) {
+  const originalTotal = sessionTotal;
+  const seen = sessionSeen;
+  const correct = seen - sessionWrong;
+  const accuracy = seen > 0 ? Math.round((correct / seen) * 100) : 0;
+
+  document.getElementById("modalTitle").textContent = completed
+    ? "Session complete! 🎉"
+    : "Session ended";
+  document.getElementById("modalStats").innerHTML =
+    `Cards in deck: ${originalTotal}<br>` +
+    `Cards seen: ${seen}<br>` +
+    `Marked wrong: ${sessionWrong}<br>` +
+    `Accuracy: ${accuracy}%`;
+  document.getElementById("sessionModal").classList.add("active");
+}
+
+function closeModal() {
+  document.getElementById("sessionModal").classList.remove("active");
+}
 
 function startSession() {
   direction = document.querySelector('input[name="dir"]:checked').value;
@@ -666,12 +691,16 @@ function startSession() {
   deck = shuffle(pool);
   cardIndex = 0;
   revealed = false;
+  sessionWrong = 0;
+  sessionSeen = 0;
+  sessionTotal = deck.length;
   document.getElementById("flashcard-area").classList.add("active");
   showCard();
 }
 
 function endSession() {
   document.getElementById("flashcard-area").classList.remove("active");
+  showSessionModal(false);
 }
 
 function shuffle(arr) {
@@ -693,10 +722,19 @@ function parseKey(key) {
 
 function showCard() {
   if (cardIndex >= deck.length) {
-    endSession();
-    showStatus("Session complete!");
+    sessionSeen = cardIndex;
+    document.getElementById("flashcard-area").classList.remove("active");
+    jsConfetti({
+      count: 400,
+      spread: 80,
+      origin: { y: 0.6 },
+      size: 2,
+      velocity: 300,
+    });
+    showSessionModal(true);
     return;
   }
+  sessionSeen = cardIndex;
   revealed = false;
   const key = deck[cardIndex];
   const { romaji, kana } = parseKey(key);
@@ -731,6 +769,7 @@ function markWrong() {
   const entry = difficult.get(key) || { romaji, kana, count: 0 };
   entry.count++;
   difficult.set(key, entry);
+  sessionWrong++;
   saveDifficult();
   renderDifficult();
   deck.push(key);
@@ -739,7 +778,7 @@ function markWrong() {
   showCard();
 }
 
-// ── Difficult list ───────────────────────────────────────────────────────────
+// ---- Difficult list -----------------------------------------------------------
 
 function renderDifficult() {
   const el = document.getElementById("difficult-list");
@@ -775,7 +814,7 @@ function clearDifficult() {
   renderDifficult();
 }
 
-// ── Events ──────────────────────────────────────────────────────────────────-
+// ---- Events -------------------------------------------------------------------
 
 function registerEvents() {
   document
@@ -788,6 +827,7 @@ function registerEvents() {
     card: handleCardClick,
     markWrongButton: markWrong,
     endSessionButton: endSession,
+    modalClose: closeModal,
   };
 
   for (const [buttonId, action] of Object.entries(buttonClickActionMap)) {
@@ -800,7 +840,7 @@ function registerEvents() {
   });
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────────
+// ---- Init ---------------------------------------------------------------------
 
 buildGroups();
 renderDifficult();

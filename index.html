@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Simple Kana Flash - Practice JP Kana</title>
     <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@hiseb/confetti@2.1.0/dist/confetti.min.js"></script>
   </head>
   <body>
     <h1>Kana Flashcards</h1>
@@ -101,6 +102,15 @@
       <div id="card-actions">
         <button id="markWrongButton" class="danger">✗ Wrong</button>
         <button id="endSessionButton">End Session</button>
+      </div>
+    </div>
+
+    <!-- Session end modal -->
+    <div id="sessionModal">
+      <div class="session-modal-box">
+        <div id="modalTitle"></div>
+        <div id="modalStats"></div>
+        <button id="modalClose">&times;</button>
       </div>
     </div>
 
