@@ -1,440 +1,109 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JP Kana Practice</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: monospace; background: #f5f5f5; color: #111; padding: 12px; font-size: 14px; }
-  h1 { font-size: 16px; margin-bottom: 12px; }
-  section { margin-bottom: 12px; border: 1px solid #ccc; padding: 8px; background: #fff; }
-  section h2 { font-size: 13px; margin-bottom: 6px; color: #555; }
-  .char-grid { display: flex; flex-wrap: wrap; gap: 4px; }
-  .char-btn {
-    border: 1px solid #aaa; background: #eee; padding: 3px 6px;
-    cursor: pointer; font-size: 13px; border-radius: 2px;
-  }
-  .char-btn.selected { background: #111; color: #fff; border-color: #111; }
-  .controls { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
-  .controls label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
-  button { cursor: pointer; padding: 5px 12px; border: 1px solid #aaa; background: #eee; font-family: monospace; font-size: 13px; border-radius: 2px; }
-  button:hover { background: #ddd; }
-  button.primary { background: #111; color: #fff; border-color: #111; }
-  button.danger { background: #c00; color: #fff; border-color: #c00; }
-  .row-group { margin-bottom: 4px; }
-  .row-group-label { font-size: 11px; color: #888; margin-bottom: 2px; }
-  #select-controls { margin-bottom: 8px; display: flex; flex-direction: column; gap: 4px; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Kana Flash - Practice JP Kana</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <h1>Kana Flashcards</h1>
 
-  /* Responsive two-column grid for hiragana + katakana */
-  #kana-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 12px;
-  }
-  #kana-grid > div { min-width: 0; }
-  .kana-section-label { font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+    <section id="setup-section">
+      <h2>1. Select Characters</h2>
+      <div id="select-controls">
+        <div>
+          <label
+            ><input type="checkbox" id="cb-hiragana" class="cb-kanaselect" />
+            Hiragana</label
+          >
+          &nbsp;
+          <label
+            ><input type="checkbox" id="cb-katakana" class="cb-kanaselect" />
+            Katakana</label
+          >
+        </div>
+        <div>
+          <label
+            ><input type="checkbox" id="cb-nocombo" class="cb-kanaselect" />
+            Exclude combo</label
+          >
+          &nbsp;
+          <label
+            ><input type="checkbox" id="cb-nodakuten" class="cb-kanaselect" />
+            Exclude dakuten/han-dakuten</label
+          >
+        </div>
+      </div>
 
-  /* Difficult list */
-  #difficult-list { margin-top: 4px; }
-  #difficult-list table { border-collapse: collapse; width: 100%; font-size: 13px; }
-  #difficult-list td, #difficult-list th { border: 1px solid #ccc; padding: 3px 8px; text-align: left; }
-  #difficult-list th { background: #f0f0f0; }
+      <div id="kana-grid">
+        <div>
+          <div class="kana-section-label">Hiragana</div>
+          <div id="hiragana-groups"></div>
+        </div>
+        <div>
+          <div class="kana-section-label">Katakana</div>
+          <div id="katakana-groups"></div>
+        </div>
+        <div>
+          <div class="kana-section-label">Hiragana — combo</div>
+          <div id="hiragana-combo-groups"></div>
+        </div>
+        <div>
+          <div class="kana-section-label">Katakana — combo</div>
+          <div id="katakana-combo-groups"></div>
+        </div>
+      </div>
+    </section>
 
-  /* Fullscreen flashcard overlay */
-  #flashcard-area {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: #f5f5f5;
-    padding: 24px;
-    z-index: 100;
-    flex-direction: column;
-  }
-  #flashcard-area.active { display: flex; }
-  #card {
-    flex: 1; border: 2px solid #111; background: #fff;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    cursor: pointer; user-select: none; padding: 24px; text-align: center;
-  }
-  #card-prompt { font-size: 96px; line-height: 1; }
-  #card-answer { font-size: 48px; margin-top: 16px; color: #333; min-height: 56px; }
-  #card-hint { font-size: 13px; color: #888; margin-top: 10px; }
-  #card-actions { display: flex; gap: 8px; margin-top: 12px; }
-  #progress { font-size: 12px; color: #555; margin-bottom: 8px; }
-</style>
-</head>
-<body>
+    <section>
+      <h2>2. Direction</h2>
+      <div class="controls">
+        <label
+          ><input type="radio" name="dir" value="jp2en" checked /> Japanese →
+          Romaji</label
+        >
+        <label
+          ><input type="radio" name="dir" value="en2jp" /> Romaji →
+          Japanese</label
+        >
+      </div>
+    </section>
 
-<h1>Kana Flashcards</h1>
+    <section>
+      <h2>3. Start</h2>
+      <div class="controls">
+        <button class="primary" id="sessionStartButton">Start Session</button>
+        <label
+          ><input type="checkbox" id="difficult-only" /> Practice difficult
+          only</label
+        >
+        <span id="status-msg" style="color: #c00; font-size: 13px"></span>
+      </div>
+    </section>
 
-<section id="setup-section">
-  <h2>1. Select Characters</h2>
-  <div id="select-controls">
-    <div>
-      <label><input type="checkbox" id="cb-hiragana" onchange="applyCheckboxes()"> Hiragana</label>
-      &nbsp;
-      <label><input type="checkbox" id="cb-katakana" onchange="applyCheckboxes()"> Katakana</label>
+    <section id="difficult-section">
+      <h2>Difficult Characters</h2>
+      <div id="difficult-list"><em>None yet.</em></div>
+      <button id="clearDifficultButton" style="margin-top: 6px">
+        Clear All
+      </button>
+    </section>
+
+    <!-- Fullscreen flashcard overlay -->
+    <div id="flashcard-area">
+      <div id="progress"></div>
+      <div id="card">
+        <div id="card-prompt"></div>
+        <div id="card-answer"></div>
+        <div id="card-hint"></div>
+      </div>
+      <div id="card-actions">
+        <button id="markWrongButton" class="danger">✗ Wrong</button>
+        <button id="endSessionButton">End Session</button>
+      </div>
     </div>
-    <div>
-      <label><input type="checkbox" id="cb-nocombo" onchange="applyCheckboxes()"> Exclude combo</label>
-      &nbsp;
-      <label><input type="checkbox" id="cb-nodakuten" onchange="applyCheckboxes()"> Exclude dakuten/han-dakuten</label>
-    </div>
-  </div>
 
-  <div id="kana-grid">
-    <div>
-      <div class="kana-section-label">Hiragana</div>
-      <div id="hiragana-groups"></div>
-    </div>
-    <div>
-      <div class="kana-section-label">Katakana</div>
-      <div id="katakana-groups"></div>
-    </div>
-    <div>
-      <div class="kana-section-label">Hiragana — combo</div>
-      <div id="hiragana-combo-groups"></div>
-    </div>
-    <div>
-      <div class="kana-section-label">Katakana — combo</div>
-      <div id="katakana-combo-groups"></div>
-    </div>
-  </div>
-</section>
-
-<section>
-  <h2>2. Direction</h2>
-  <div class="controls">
-    <label><input type="radio" name="dir" value="jp2en" checked> Japanese → Romaji</label>
-    <label><input type="radio" name="dir" value="en2jp"> Romaji → Japanese</label>
-  </div>
-</section>
-
-<section>
-  <h2>3. Start</h2>
-  <div class="controls">
-    <button class="primary" onclick="startSession()">Start Session</button>
-    <label><input type="checkbox" id="difficult-only"> Practice difficult only</label>
-    <span id="status-msg" style="color:#c00; font-size:13px;"></span>
-  </div>
-</section>
-
-<section id="difficult-section">
-  <h2>Difficult Characters</h2>
-  <div id="difficult-list"><em>None yet.</em></div>
-  <button onclick="clearDifficult()" style="margin-top:6px">Clear All</button>
-</section>
-
-<!-- Fullscreen flashcard overlay -->
-<div id="flashcard-area">
-  <div id="progress"></div>
-  <div id="card" onclick="handleCardClick()">
-    <div id="card-prompt"></div>
-    <div id="card-answer"></div>
-    <div id="card-hint"></div>
-  </div>
-  <div id="card-actions">
-    <button class="danger" onclick="markWrong()">✗ Wrong</button>
-    <button onclick="endSession()">End Session</button>
-  </div>
-</div>
-
-<script>
-// ── Data ────────────────────────────────────────────────────────────────────
-
-const HIRAGANA = [
-  { row: 'vowels',  chars: [['a','あ'],['i','い'],['u','う'],['e','え'],['o','お']] },
-  { row: 'k',       chars: [['ka','か'],['ki','き'],['ku','く'],['ke','け'],['ko','こ']] },
-  { row: 'g',       tags:['dakuten'],    chars: [['ga','が'],['gi','ぎ'],['gu','ぐ'],['ge','げ'],['go','ご']] },
-  { row: 's',       chars: [['sa','さ'],['shi','し'],['su','す'],['se','せ'],['so','そ']] },
-  { row: 'z',       tags:['dakuten'],    chars: [['za','ざ'],['ji','じ'],['zu','ず'],['ze','ぜ'],['zo','ぞ']] },
-  { row: 't',       chars: [['ta','た'],['chi','ち'],['tsu','つ'],['te','て'],['to','と']] },
-  { row: 'd',       tags:['dakuten'],    chars: [['da','だ'],['di','ぢ'],['du','づ'],['de','で'],['do','ど']] },
-  { row: 'n',       chars: [['na','な'],['ni','に'],['nu','ぬ'],['ne','ね'],['no','の']] },
-  { row: 'h',       chars: [['ha','は'],['hi','ひ'],['fu','ふ'],['he','へ'],['ho','ほ']] },
-  { row: 'b',       tags:['dakuten'],    chars: [['ba','ば'],['bi','び'],['bu','ぶ'],['be','べ'],['bo','ぼ']] },
-  { row: 'p',       tags:['handakuten'], chars: [['pa','ぱ'],['pi','ぴ'],['pu','ぷ'],['pe','ぺ'],['po','ぽ']] },
-  { row: 'm',       chars: [['ma','ま'],['mi','み'],['mu','む'],['me','め'],['mo','も']] },
-  { row: 'y',       chars: [['ya','や'],['yu','ゆ'],['yo','よ']] },
-  { row: 'r',       chars: [['ra','ら'],['ri','り'],['ru','る'],['re','れ'],['ro','ろ']] },
-  { row: 'w',       chars: [['wa','わ'],['wi','ゐ'],['we','ゑ'],['wo','を']] },
-  { row: 'n (solo)',chars: [['n','ん']] },
-  { row: 'combo k', tags:['combo'],                chars: [['kya','きゃ'],['kyu','きゅ'],['kyo','きょ']] },
-  { row: 'combo sh',tags:['combo'],                chars: [['sha','しゃ'],['shu','しゅ'],['sho','しょ']] },
-  { row: 'combo ch',tags:['combo'],                chars: [['cha','ちゃ'],['chu','ちゅ'],['cho','ちょ']] },
-  { row: 'combo ny',tags:['combo'],                chars: [['nya','にゃ'],['nyu','にゅ'],['nyo','にょ']] },
-  { row: 'combo hy',tags:['combo'],                chars: [['hya','ひゃ'],['hyu','ひゅ'],['hyo','ひょ']] },
-  { row: 'combo my',tags:['combo'],                chars: [['mya','みゃ'],['myu','みゅ'],['myo','みょ']] },
-  { row: 'combo ry',tags:['combo'],                chars: [['rya','りゃ'],['ryu','りゅ'],['ryo','りょ']] },
-  { row: 'combo gy',tags:['combo','dakuten'],      chars: [['gya','ぎゃ'],['gyu','ぎゅ'],['gyo','ぎょ']] },
-  { row: 'combo j', tags:['combo','dakuten'],      chars: [['ja','じゃ'],['ju','じゅ'],['jo','じょ']] },
-  { row: 'combo by',tags:['combo','dakuten'],      chars: [['bya','びゃ'],['byu','びゅ'],['byo','びょ']] },
-  { row: 'combo py',tags:['combo','handakuten'],   chars: [['pya','ぴゃ'],['pyu','ぴゅ'],['pyo','ぴょ']] },
-];
-
-const KATAKANA = [
-  { row: 'vowels',  chars: [['a','ア'],['i','イ'],['u','ウ'],['e','エ'],['o','オ']] },
-  { row: 'k',       chars: [['ka','カ'],['ki','キ'],['ku','ク'],['ke','ケ'],['ko','コ']] },
-  { row: 'g',       tags:['dakuten'],    chars: [['ga','ガ'],['gi','ギ'],['gu','グ'],['ge','ゲ'],['go','ゴ']] },
-  { row: 's',       chars: [['sa','サ'],['shi','シ'],['su','ス'],['se','セ'],['so','ソ']] },
-  { row: 'z',       tags:['dakuten'],    chars: [['za','ザ'],['ji','ジ'],['zu','ズ'],['ze','ゼ'],['zo','ゾ']] },
-  { row: 't',       chars: [['ta','タ'],['chi','チ'],['tsu','ツ'],['te','テ'],['to','ト']] },
-  { row: 'd',       tags:['dakuten'],    chars: [['da','ダ'],['di','ヂ'],['du','ヅ'],['de','デ'],['do','ド']] },
-  { row: 'n',       chars: [['na','ナ'],['ni','ニ'],['nu','ヌ'],['ne','ネ'],['no','ノ']] },
-  { row: 'h',       chars: [['ha','ハ'],['hi','ヒ'],['fu','フ'],['he','ヘ'],['ho','ホ']] },
-  { row: 'b',       tags:['dakuten'],    chars: [['ba','バ'],['bi','ビ'],['bu','ブ'],['be','ベ'],['bo','ボ']] },
-  { row: 'p',       tags:['handakuten'], chars: [['pa','パ'],['pi','ピ'],['pu','プ'],['pe','ペ'],['po','ポ']] },
-  { row: 'm',       chars: [['ma','マ'],['mi','ミ'],['mu','ム'],['me','メ'],['mo','モ']] },
-  { row: 'y',       chars: [['ya','ヤ'],['yu','ユ'],['yo','ヨ']] },
-  { row: 'r',       chars: [['ra','ラ'],['ri','リ'],['ru','ル'],['re','レ'],['ro','ロ']] },
-  { row: 'w',       chars: [['wa','ワ'],['wi','ヰ'],['we','ヱ'],['wo','ヲ']] },
-  { row: 'n (solo)',chars: [['n','ン']] },
-  { row: 'combo k', tags:['combo'],                chars: [['kya','キャ'],['kyu','キュ'],['kyo','キョ']] },
-  { row: 'combo sh',tags:['combo'],                chars: [['sha','シャ'],['shu','シュ'],['sho','ショ']] },
-  { row: 'combo ch',tags:['combo'],                chars: [['cha','チャ'],['chu','チュ'],['cho','チョ']] },
-  { row: 'combo ny',tags:['combo'],                chars: [['nya','ニャ'],['nyu','ニュ'],['nyo','ニョ']] },
-  { row: 'combo hy',tags:['combo'],                chars: [['hya','ヒャ'],['hyu','ヒュ'],['hyo','ヒョ']] },
-  { row: 'combo my',tags:['combo'],                chars: [['mya','ミャ'],['myu','ミュ'],['myo','ミョ']] },
-  { row: 'combo ry',tags:['combo'],                chars: [['rya','リャ'],['ryu','リュ'],['ryo','リョ']] },
-  { row: 'combo gy',tags:['combo','dakuten'],      chars: [['gya','ギャ'],['gyu','ギュ'],['gyo','ギョ']] },
-  { row: 'combo j', tags:['combo','dakuten'],      chars: [['ja','ジャ'],['ju','ジュ'],['jo','ジョ']] },
-  { row: 'combo by',tags:['combo','dakuten'],      chars: [['bya','ビャ'],['byu','ビュ'],['byo','ビョ']] },
-  { row: 'combo py',tags:['combo','handakuten'],   chars: [['pya','ピャ'],['pyu','ピュ'],['pyo','ピョ']] },
-];
-
-// ── State ───────────────────────────────────────────────────────────────────
-
-let selected = new Set();
-let difficult = loadDifficult();
-let deck = [];
-let cardIndex = 0;
-let revealed = false;
-let direction = 'jp2en';
-
-function charKey(type, romaji, kana) { return `${type}:${romaji}:${kana}`; }
-
-// ── Persist ──────────────────────────────────────────────────────────────────
-
-function loadDifficult() {
-  try { return new Map(JSON.parse(localStorage.getItem('kana-difficult') || '[]')); }
-  catch { return new Map(); }
-}
-function saveDifficult() {
-  localStorage.setItem('kana-difficult', JSON.stringify([...difficult.entries()]));
-}
-
-// ── Build UI ─────────────────────────────────────────────────────────────────
-
-function buildGroups() {
-  buildSection('hiragana-groups',       HIRAGANA, 'h', false);
-  buildSection('katakana-groups',       KATAKANA, 'k', false);
-  buildSection('hiragana-combo-groups', HIRAGANA, 'h', true);
-  buildSection('katakana-combo-groups', KATAKANA, 'k', true);
-}
-
-function buildSection(containerId, groups, type, comboOnly) {
-  const container = document.getElementById(containerId);
-  groups
-    .filter(group => {
-      const isCombo = (group.tags || []).includes('combo');
-      return comboOnly ? isCombo : !isCombo;
-    })
-    .forEach(group => {
-    const div = document.createElement('div');
-    div.className = 'row-group';
-    const lbl = document.createElement('div');
-    lbl.className = 'row-group-label';
-    lbl.textContent = group.row;
-    div.appendChild(lbl);
-    const grid = document.createElement('div');
-    grid.className = 'char-grid';
-    const rowTags = (group.tags || []).join(' ');
-    group.chars.forEach(([romaji, kana]) => {
-      const key = charKey(type, romaji, kana);
-      const btn = document.createElement('button');
-      btn.className = 'char-btn';
-      btn.dataset.key = key;
-      btn.dataset.type = type;
-      btn.dataset.tags = rowTags;
-      btn.title = romaji;
-      btn.textContent = kana;
-      btn.onclick = () => toggleChar(key, btn);
-      grid.appendChild(btn);
-    });
-    div.appendChild(grid);
-    container.appendChild(div);
-  });
-}
-
-function toggleChar(key, btn) {
-  if (selected.has(key)) { selected.delete(key); btn.classList.remove('selected'); }
-  else { selected.add(key); btn.classList.add('selected'); }
-}
-
-function selectNone() {
-  selected.clear();
-  document.querySelectorAll('.char-btn').forEach(btn => btn.classList.remove('selected'));
-}
-
-function applyCheckboxes() {
-  const wantH     = document.getElementById('cb-hiragana').checked;
-  const wantK     = document.getElementById('cb-katakana').checked;
-  const noCombo   = document.getElementById('cb-nocombo').checked;
-  const noDakuten = document.getElementById('cb-nodakuten').checked;
-
-  selected.clear();
-  document.querySelectorAll('.char-btn').forEach(btn => {
-    const type = btn.dataset.type;
-    if (type === 'h' && !wantH) { btn.classList.remove('selected'); return; }
-    if (type === 'k' && !wantK) { btn.classList.remove('selected'); return; }
-    const tags = btn.dataset.tags ? btn.dataset.tags.split(' ').filter(Boolean) : [];
-    if (noCombo   && tags.includes('combo'))    { btn.classList.remove('selected'); return; }
-    if (noDakuten && (tags.includes('dakuten') || tags.includes('handakuten'))) {
-      btn.classList.remove('selected'); return;
-    }
-    selected.add(btn.dataset.key);
-    btn.classList.add('selected');
-  });
-}
-
-let statusTimer = null;
-function showStatus(msg) {
-  const el = document.getElementById('status-msg');
-  el.textContent = msg;
-  clearTimeout(statusTimer);
-  statusTimer = setTimeout(() => { el.textContent = ''; }, 3000);
-}
-
-// ── Session ──────────────────────────────────────────────────────────────────
-
-function startSession() {
-  direction = document.querySelector('input[name="dir"]:checked').value;
-  const difficultOnly = document.getElementById('difficult-only').checked;
-
-  let pool;
-  if (difficultOnly) {
-    pool = [...difficult.keys()];
-  } else {
-    pool = [...selected];
-  }
-
-  if (pool.length === 0) {
-    showStatus(difficultOnly ? 'No difficult characters recorded yet.' : 'Select at least one character.');
-    return;
-  }
-
-  deck = shuffle(pool);
-  cardIndex = 0;
-  revealed = false;
-  document.getElementById('flashcard-area').classList.add('active');
-  showCard();
-}
-
-function endSession() {
-  document.getElementById('flashcard-area').classList.remove('active');
-}
-
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function parseKey(key) {
-  const parts = key.split(':');
-  const type = parts[0];
-  const romaji = parts[1];
-  const kana = parts.slice(2).join(':');
-  return { type, romaji, kana };
-}
-
-function showCard() {
-  if (cardIndex >= deck.length) {
-    endSession();
-    showStatus('Session complete!');
-    return;
-  }
-  revealed = false;
-  const key = deck[cardIndex];
-  const { romaji, kana } = parseKey(key);
-  const prompt = direction === 'jp2en' ? kana : romaji;
-
-  document.getElementById('card-prompt').textContent = prompt;
-  document.getElementById('card-answer').textContent = '';
-  document.getElementById('card-hint').textContent = 'tap to reveal';
-  document.getElementById('progress').textContent =
-    `Card ${cardIndex + 1} / ${deck.length}` +
-    (difficult.has(key) ? `  ⚑ difficult (×${difficult.get(key).count})` : '');
-}
-
-function handleCardClick() {
-  if (!revealed) {
-    const key = deck[cardIndex];
-    const { romaji, kana } = parseKey(key);
-    const answer = direction === 'jp2en' ? romaji : kana;
-    document.getElementById('card-answer').textContent = answer;
-    document.getElementById('card-hint').textContent = 'tap again to mark correct & next';
-    revealed = true;
-  } else {
-    cardIndex++;
-    showCard();
-  }
-}
-
-function markWrong() {
-  const key = deck[cardIndex];
-  const { romaji, kana } = parseKey(key);
-  const entry = difficult.get(key) || { romaji, kana, count: 0 };
-  entry.count++;
-  difficult.set(key, entry);
-  saveDifficult();
-  renderDifficult();
-  deck.push(key);
-  cardIndex++;
-  revealed = false;
-  showCard();
-}
-
-// ── Difficult list ───────────────────────────────────────────────────────────
-
-function renderDifficult() {
-  const el = document.getElementById('difficult-list');
-  if (difficult.size === 0) { el.innerHTML = '<em>None yet.</em>'; return; }
-  let html = '<table><tr><th>Kana</th><th>Romaji</th><th>Wrong</th><th></th></tr>';
-  [...difficult.entries()]
-    .sort((a, b) => b[1].count - a[1].count)
-    .forEach(([key, { romaji, kana, count }]) => {
-      html += `<tr>
-        <td style="font-size:18px">${kana}</td>
-        <td>${romaji}</td>
-        <td>${count}</td>
-        <td><button onclick="removeDifficult('${key}')">×</button></td>
-      </tr>`;
-    });
-  html += '</table>';
-  el.innerHTML = html;
-}
-
-function removeDifficult(key) {
-  difficult.delete(key);
-  saveDifficult();
-  renderDifficult();
-}
-
-function clearDifficult() {
-  difficult.clear();
-  saveDifficult();
-  renderDifficult();
-}
-
-// ── Init ─────────────────────────────────────────────────────────────────────
-
-buildGroups();
-renderDifficult();
-</script>
-</body>
+    <script src="./script.js"></script>
+  </body>
 </html>

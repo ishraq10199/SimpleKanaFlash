@@ -1,0 +1,208 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: monospace;
+  background: #f5f5f5;
+  color: #111;
+  padding: 12px;
+  font-size: 14px;
+}
+
+h1 {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+section {
+  margin-bottom: 12px;
+  border: 1px solid #ccc;
+  padding: 8px;
+  background: #fff;
+}
+
+section h2 {
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: #555;
+}
+
+.char-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.char-btn {
+  border: 1px solid #aaa;
+  background: #eee;
+  padding: 3px 6px;
+  cursor: pointer;
+  font-size: 13px;
+  border-radius: 2px;
+}
+
+.char-btn.selected {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+.controls {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.controls label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+button {
+  cursor: pointer;
+  padding: 5px 12px;
+  border: 1px solid #aaa;
+  background: #eee;
+  font-family: monospace;
+  font-size: 13px;
+  border-radius: 2px;
+}
+
+button:hover {
+  background: #ddd;
+}
+
+button.primary {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
+button.danger {
+  background: #c00;
+  color: #fff;
+  border-color: #c00;
+}
+
+.row-group {
+  margin-bottom: 4px;
+}
+
+.row-group-label {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 2px;
+}
+
+#select-controls {
+  margin-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Responsive two-column grid for hiragana + katakana */
+#kana-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+#kana-grid>div {
+  min-width: 0;
+}
+
+.kana-section-label {
+  font-weight: bold;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+/* Difficult list */
+#difficult-list {
+  margin-top: 4px;
+}
+
+#difficult-list table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+
+#difficult-list td,
+#difficult-list th {
+  border: 1px solid #ccc;
+  padding: 3px 8px;
+  text-align: left;
+}
+
+#difficult-list th {
+  background: #f0f0f0;
+}
+
+/* Fullscreen flashcard overlay */
+#flashcard-area {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #f5f5f5;
+  padding: 24px;
+  z-index: 100;
+  flex-direction: column;
+}
+
+#flashcard-area.active {
+  display: flex;
+}
+
+#card {
+  flex: 1;
+  border: 2px solid #111;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 24px;
+  text-align: center;
+}
+
+#card-prompt {
+  font-size: 96px;
+  line-height: 1;
+}
+
+#card-answer {
+  font-size: 48px;
+  margin-top: 16px;
+  color: #333;
+  min-height: 56px;
+}
+
+#card-hint {
+  font-size: 13px;
+  color: #888;
+  margin-top: 10px;
+}
+
+#card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+#progress {
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 8px;
+}
