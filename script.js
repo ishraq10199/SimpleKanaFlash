@@ -399,8 +399,6 @@ const KATAKANA = [
     row: "w",
     chars: [
       ["wa", "ワ"],
-      ["wi", "ヰ"],
-      ["we", "ヱ"],
       ["wo", "ヲ"],
     ],
   },
@@ -514,6 +512,7 @@ let difficult = loadDifficult();
 let deck = [];
 let cardIndex = 0;
 let revealed = false;
+let busy = false;
 let direction = "jp2en";
 let sessionWrong = 0;
 let sessionSeen = 0;
@@ -602,8 +601,8 @@ function selectNone() {
 function applyCheckboxes() {
   const wantH = document.getElementById("cb-hiragana").checked;
   const wantK = document.getElementById("cb-katakana").checked;
-  const noCombo = document.getElementById("cb-nocombo").checked;
-  const noDakuten = document.getElementById("cb-nodakuten").checked;
+  const includeCombo = document.getElementById("cb-combo").checked;
+  const includeDakuten = document.getElementById("cb-dakuten").checked;
 
   selected.clear();
   document.querySelectorAll(".char-btn").forEach((btn) => {
@@ -619,12 +618,12 @@ function applyCheckboxes() {
     const tags = btn.dataset.tags
       ? btn.dataset.tags.split(" ").filter(Boolean)
       : [];
-    if (noCombo && tags.includes("combo")) {
+    if (!includeCombo && tags.includes("combo")) {
       btn.classList.remove("selected");
       return;
     }
     if (
-      noDakuten &&
+      !includeDakuten &&
       (tags.includes("dakuten") || tags.includes("handakuten"))
     ) {
       btn.classList.remove("selected");
@@ -749,6 +748,7 @@ function showCard() {
 }
 
 function handleCardClick() {
+  if (busy) return;
   if (!revealed) {
     const key = deck[cardIndex];
     const { romaji, kana } = parseKey(key);
@@ -764,6 +764,7 @@ function handleCardClick() {
 }
 
 function markWrong() {
+  if (busy) return;
   const key = deck[cardIndex];
   const { romaji, kana } = parseKey(key);
   const entry = difficult.get(key) || { romaji, kana, count: 0 };
@@ -774,8 +775,22 @@ function markWrong() {
   renderDifficult();
   deck.push(key);
   cardIndex++;
-  revealed = false;
-  showCard();
+
+  if (!revealed) {
+    // Show the answer briefly before advancing to the next card
+    const answer = direction === "jp2en" ? romaji : kana;
+    document.getElementById("card-answer").textContent = answer;
+    document.getElementById("card-hint").textContent = "";
+    busy = true;
+    setTimeout(() => {
+      busy = false;
+      revealed = false;
+      showCard();
+    }, 500);
+  } else {
+    revealed = false;
+    showCard();
+  }
 }
 
 // ---- Difficult list -----------------------------------------------------------
@@ -816,6 +831,22 @@ function clearDifficult() {
 
 // ---- Events -------------------------------------------------------------------
 
+function handleKeydown(e) {
+  const flashcardArea = document.getElementById("flashcard-area");
+  if (!flashcardArea.classList.contains("active")) return;
+  if (document.getElementById("sessionModal").classList.contains("active")) return;
+
+  if ([" ", "ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft", "Escape"].includes(e.key)) {
+    e.preventDefault();
+  }
+
+  if (e.key === " " || e.key === "ArrowDown" || e.key === "ArrowRight") {
+    handleCardClick();
+  } else if (e.key === "Escape" || e.key === "ArrowUp" || e.key === "ArrowLeft") {
+    markWrong();
+  }
+}
+
 function registerEvents() {
   document
     .querySelectorAll(".cb-kanaselect")
@@ -838,6 +869,8 @@ function registerEvents() {
     const btn = e.target.closest("button[data-remove-key]");
     if (btn) removeDifficult(btn.dataset.removeKey);
   });
+
+  document.addEventListener("keydown", handleKeydown);
 }
 
 // ---- Init ---------------------------------------------------------------------
