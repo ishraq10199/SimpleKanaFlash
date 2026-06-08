@@ -765,6 +765,12 @@ function handleCardClick() {
 
 function markWrong() {
   if (busy) return;
+  const cardEl = document.getElementById("card");
+  cardEl.classList.remove("wrong");
+  void cardEl.offsetWidth; // force reflow so re-triggering replays the animation
+  cardEl.classList.add("wrong");
+  cardEl.addEventListener("animationend", () => cardEl.classList.remove("wrong"), { once: true });
+
   const key = deck[cardIndex];
   const { romaji, kana } = parseKey(key);
   const entry = difficult.get(key) || { romaji, kana, count: 0 };

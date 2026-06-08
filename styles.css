@@ -178,6 +178,17 @@ button.danger {
   text-align: center;
 }
 
+@keyframes wrong-flash {
+  0%   { background: #fff;    border-color: #111; }
+  20%  { background: #ffe4e4; border-color: #c00; }
+  65%  { background: #ffe4e4; border-color: #c00; }
+  100% { background: #fff;    border-color: #111; }
+}
+
+#card.wrong {
+  animation: wrong-flash 0.5s ease-in-out;
+}
+
 #card-prompt {
   font-size: 96px;
   line-height: 1;
