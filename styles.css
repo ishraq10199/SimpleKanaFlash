@@ -189,6 +189,16 @@ button.danger {
   animation: wrong-flash 0.5s ease-in-out;
 }
 
+@keyframes correct-flash {
+  0%   { background: #fff;    border-color: #111; }
+  30%  { background: #e8f5e8; border-color: #4a4; }
+  100% { background: #fff;    border-color: #111; }
+}
+
+#card.correct {
+  animation: correct-flash 0.35s ease-out;
+}
+
 #card-prompt {
   font-size: 96px;
   line-height: 1;

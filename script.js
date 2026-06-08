@@ -758,6 +758,11 @@ function handleCardClick() {
       "tap again to mark correct & next";
     revealed = true;
   } else {
+    const cardEl = document.getElementById("card");
+    cardEl.classList.remove("correct");
+    void cardEl.offsetWidth;
+    cardEl.classList.add("correct");
+    cardEl.addEventListener("animationend", () => cardEl.classList.remove("correct"), { once: true });
     cardIndex++;
     showCard();
   }
