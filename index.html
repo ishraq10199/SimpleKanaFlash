@@ -2,8 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Simple Kana Flash - Practice JP Kana</title>
+    <meta name="description" content="Flashcards for practising Japanese hiragana and katakana." />
+    <meta name="theme-color" content="#f5f5f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="./icons/favicon.ico" sizes="32x32" />
+    <link rel="icon" href="./icons/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
     <script>
       // Apply the saved theme before first paint to avoid a flash
       try {
@@ -12,9 +19,10 @@
       } catch {}
     </script>
     <link rel="stylesheet" href="./styles.css" />
-    <script src="https://cdn.jsdelivr.net/npm/@hiseb/confetti@2.1.0/dist/confetti.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/motion@11.11.17/dist/motion.js"></script>
+    <script src="./vendor/confetti.browser.js" defer></script>
+    <script src="./vendor/interact.min.js" defer></script>
+    <script src="./vendor/motion.js" defer></script>
+    <script src="./script.js" defer></script>
   </head>
   <body>
     <header class="topbar">
@@ -22,91 +30,92 @@
       <button id="themeToggle" type="button"></button>
     </header>
 
-    <section id="setup-section">
-      <h2>1. Select Characters <span id="selected-count" class="h2-meta"></span></h2>
-      <div id="select-controls">
-        <div>
-          <label
-            ><input type="checkbox" id="cb-hiragana" class="cb-kanaselect" />
-            Hiragana</label
-          >
-          &nbsp;
-          <label
-            ><input type="checkbox" id="cb-katakana" class="cb-kanaselect" />
-            Katakana</label
-          >
+    <main class="page">
+      <section id="select-section">
+        <div class="section-head">
+          <h2>Characters <span id="selected-count" class="h2-meta"></span></h2>
+          <div class="head-actions">
+            <button id="selectAllButton" type="button">All</button>
+            <button id="clearSelectionButton" type="button">Clear</button>
+          </div>
         </div>
-        <div>
-          <label
-            ><input type="checkbox" id="cb-combo" class="cb-kanaselect" />
-            Include combo</label
-          >
-          &nbsp;
-          <label
-            ><input type="checkbox" id="cb-dakuten" class="cb-kanaselect" />
-            Include dakuten/han-dakuten</label
-          >
-        </div>
-      </div>
 
-      <div id="kana-grid">
-        <div>
-          <div class="kana-section-label">Hiragana</div>
-          <div id="hiragana-groups"></div>
+        <div class="tabs" role="tablist">
+          <button type="button" role="tab" data-tab="h" aria-controls="panel-h">
+            <span class="tab-ja" lang="ja">ひらがな</span> Hiragana <span class="tab-count"></span>
+          </button>
+          <button type="button" role="tab" data-tab="k" aria-controls="panel-k">
+            <span class="tab-ja" lang="ja">カタカナ</span> Katakana <span class="tab-count"></span>
+          </button>
+          <button type="button" role="tab" data-tab="sim" aria-controls="panel-sim">
+            Look-alikes
+          </button>
         </div>
-        <div>
-          <div class="kana-section-label">Katakana</div>
-          <div id="katakana-groups"></div>
+        <div class="tab-panel" id="panel-h" role="tabpanel"></div>
+        <div class="tab-panel" id="panel-k" role="tabpanel"></div>
+        <div class="tab-panel" id="panel-sim" role="tabpanel">
+          <p class="panel-note">
+            Characters that are easy to mix up. Tap a set to add or remove it.
+          </p>
+          <div id="lookalike-list"></div>
         </div>
-        <div>
-          <div class="kana-section-label">Hiragana — combo</div>
-          <div id="hiragana-combo-groups"></div>
-        </div>
-        <div>
-          <div class="kana-section-label">Katakana — combo</div>
-          <div id="katakana-combo-groups"></div>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <section>
-      <h2>2. Direction</h2>
-      <div class="controls">
-        <label
-          ><input type="radio" name="dir" value="jp2en" checked /> Japanese →
-          Romaji</label
+      <section id="options-section">
+        <h2>Practice</h2>
+        <div class="option-grid">
+          <div class="option">
+            <div class="option-label">Direction</div>
+            <div class="segmented">
+              <label><input type="radio" name="dir" value="jp2en" checked /><span>Japanese → Romaji</span></label>
+              <label><input type="radio" name="dir" value="en2jp" /><span>Romaji → Japanese</span></label>
+              <label><input type="radio" name="dir" value="mixed" /><span>Mixed</span></label>
+            </div>
+          </div>
+          <div class="option">
+            <div class="option-label">Answer by</div>
+            <div class="segmented">
+              <label><input type="radio" name="mode" value="flip" checked /><span>Flip &amp; self-check</span></label>
+              <label><input type="radio" name="mode" value="type" /><span>Typing romaji</span></label>
+            </div>
+            <div class="option-note">Typing is used on Japanese → Romaji cards.</div>
+          </div>
+          <div class="option">
+            <div class="option-label">Cards per session</div>
+            <div class="segmented">
+              <label><input type="radio" name="limit" value="all" checked /><span>All</span></label>
+              <label><input type="radio" name="limit" value="10" /><span>10</span></label>
+              <label><input type="radio" name="limit" value="20" /><span>20</span></label>
+              <label><input type="radio" name="limit" value="50" /><span>50</span></label>
+            </div>
+            <div class="option-note">Weak and due characters are picked first.</div>
+          </div>
+          <div class="option">
+            <div class="option-label">Practise</div>
+            <div class="segmented">
+              <label><input type="radio" name="pool" value="selected" checked /><span>Selected</span></label>
+              <label><input type="radio" name="pool" value="due" /><span>Due for review</span></label>
+              <label><input type="radio" name="pool" value="weak" /><span>Weak only</span></label>
+            </div>
+          </div>
+        </div>
+        <label class="option-row"
+          ><input type="checkbox" id="show-type" /> Show hiragana/katakana label on
+          Japanese → Romaji cards too</label
         >
-        <label
-          ><input type="radio" name="dir" value="en2jp" /> Romaji →
-          Japanese</label
-        >
-        <label><input type="radio" name="dir" value="mixed" /> Mixed</label>
-      </div>
-      <label class="option-row"
-        ><input type="checkbox" id="show-type" /> Show hiragana/katakana label
-        on Japanese → Romaji cards too</label
-      >
-    </section>
+      </section>
 
-    <section>
-      <h2>3. Start</h2>
-      <div class="controls">
-        <button class="primary" id="sessionStartButton">Start Session</button>
-        <label
-          ><input type="checkbox" id="difficult-only" /> Practice difficult
-          only</label
-        >
-        <span id="status-msg" role="status"></span>
-      </div>
-    </section>
+      <section id="review-section">
+        <h2>Review <span id="review-summary" class="h2-meta"></span></h2>
+        <div id="weak-list"></div>
+        <button id="resetProgressButton" type="button">Reset progress</button>
+      </section>
+    </main>
 
-    <section id="difficult-section">
-      <h2>Difficult Characters</h2>
-      <div id="difficult-list"><em>None yet.</em></div>
-      <button id="clearDifficultButton">
-        Clear All
-      </button>
-    </section>
+    <div id="start-bar">
+      <span id="status-msg" role="status"></span>
+      <button class="primary" id="sessionStartButton" type="button">Start Session</button>
+    </div>
 
     <!-- Fullscreen flashcard overlay -->
     <div id="flashcard-area">
@@ -124,16 +133,32 @@
         <div id="card-type" hidden></div>
         <div id="card-prompt"></div>
         <div id="card-answer"></div>
+        <div id="card-alt"></div>
         <div id="card-hint"></div>
       </div>
+      <form id="type-form" hidden autocomplete="off">
+        <input
+          id="type-input"
+          type="text"
+          placeholder="romaji"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          enterkeyhint="done"
+          aria-label="Your answer in romaji"
+        />
+        <button type="submit" class="primary">Check</button>
+        <button type="button" id="dontKnowButton">Don't know</button>
+      </form>
       <div id="card-actions">
         <button id="markWrongButton" class="danger">✗ Wrong</button>
         <button id="markCorrectButton" class="success">✓ Correct</button>
       </div>
       <div id="kbd-hint">
         <kbd>space</kbd>/<kbd>→</kbd> reveal, then correct &nbsp;·&nbsp;
-        <kbd>←</kbd>/<kbd>esc</kbd> wrong &nbsp;·&nbsp;
-        <kbd>⌫</kbd>/<kbd>z</kbd> undo
+        <kbd>←</kbd>/<kbd>↑</kbd> wrong &nbsp;·&nbsp;
+        <kbd>⌫</kbd>/<kbd>z</kbd> undo &nbsp;·&nbsp;
+        <kbd>esc</kbd> end
       </div>
     </div>
 
@@ -149,7 +174,5 @@
         <button id="modalClose" aria-label="Close">&times;</button>
       </div>
     </div>
-
-    <script src="./script.js"></script>
   </body>
 </html>

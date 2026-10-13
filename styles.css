@@ -88,7 +88,24 @@ body {
   background: var(--bg);
   color: var(--fg);
   padding: 12px;
+  padding-bottom: 0;
   font-size: 14px;
+}
+
+.topbar,
+.page {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 h1 {
@@ -155,52 +172,8 @@ kbd {
   background: var(--surface);
 }
 
-.char-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.char-btn {
-  border: 1px solid var(--btn-border);
-  background: var(--btn-bg);
-  padding: 3px 6px;
-  cursor: pointer;
-  font-size: 13px;
-  border-radius: 2px;
-}
-
-.char-btn:hover {
-  border-color: var(--fg);
-}
-
-.char-btn.selected {
-  background: var(--fg);
-  color: var(--surface);
-  border-color: var(--fg);
-}
-
-.char-btn.selected:hover {
-  background: var(--fg-hover);
-}
-
-.controls {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.controls label,
-#select-controls label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-}
-
 button {
+  color: inherit;
   cursor: pointer;
   padding: 5px 12px;
   border: 1px solid var(--btn-border);
@@ -251,64 +224,6 @@ button.success:hover {
 #status-msg {
   color: var(--danger);
   font-size: 13px;
-}
-
-#clearDifficultButton {
-  margin-top: 6px;
-}
-
-.row-group {
-  margin-bottom: 4px;
-}
-
-#select-controls {
-  margin-bottom: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* Responsive two-column grid for hiragana + katakana */
-#kana-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-}
-
-#kana-grid>div {
-  min-width: 0;
-}
-
-.kana-section-label {
-  font-weight: bold;
-  font-size: 13px;
-  margin-bottom: 4px;
-}
-
-/* Difficult list */
-#difficult-list {
-  margin-top: 4px;
-}
-
-#difficult-list table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: 13px;
-}
-
-#difficult-list td,
-#difficult-list th {
-  border: 1px solid var(--border);
-  padding: 3px 8px;
-  text-align: left;
-}
-
-#difficult-list th {
-  background: var(--th-bg);
-}
-
-#difficult-list button {
-  padding: 1px 8px;
 }
 
 /* Fullscreen flashcard overlay */
@@ -493,11 +408,6 @@ button.success:hover {
 
 /* Touch devices: bigger targets, no keyboard hint */
 @media (pointer: coarse) {
-  .char-btn {
-    padding: 6px 10px;
-    font-size: 15px;
-  }
-
   button {
     min-height: 36px;
   }
@@ -589,27 +499,6 @@ button.success:hover {
   font-weight: bold;
 }
 
-#modalDone {
-  width: 100%;
-}
-/* Row labels double as "toggle whole row" buttons */
-.row-group-label {
-  display: block;
-  border: none;
-  background: none;
-  padding: 0;
-  min-height: 0;
-  font-size: 11px;
-  color: var(--faint);
-  margin-bottom: 2px;
-}
-
-.row-group-label:hover {
-  background: none;
-  color: var(--fg);
-  text-decoration: underline;
-}
-
 .option-row {
   display: inline-flex;
   align-items: center;
@@ -640,4 +529,438 @@ button:disabled:hover {
 
 .modal-buttons button {
   flex: 1;
+}
+
+/* ---- Selection: tabs + kana charts ------------------------------------------ */
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.section-head h2 {
+  margin-bottom: 0;
+}
+
+.head-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.head-actions button {
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+[role="tab"] {
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  padding: 8px 12px;
+  margin-bottom: -1px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+[role="tab"]:hover {
+  background: none;
+  color: var(--fg);
+}
+
+[role="tab"][aria-selected="true"] {
+  color: var(--fg);
+  border-bottom-color: var(--fg);
+  font-weight: bold;
+}
+
+.tab-count:not(:empty) {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 2px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: normal;
+  background: var(--fg);
+  color: var(--surface);
+  border-radius: 9px;
+}
+
+.panel-note {
+  color: var(--faint);
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.chart-block + .chart-block {
+  margin-top: 16px;
+}
+
+.block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.block-head label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.block-count {
+  font-weight: normal;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--fg);
+}
+
+.kana-chart {
+  display: grid;
+  grid-template-columns: 36px repeat(var(--cols), minmax(0, 1fr));
+  gap: 3px;
+}
+
+/* Column and row labels double as "toggle whole column/row" buttons */
+.chart-col,
+.row-group-label {
+  border: none;
+  background: none;
+  padding: 0;
+  min-height: 0;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.chart-col {
+  padding-bottom: 2px;
+}
+
+.row-group-label {
+  text-align: right;
+  padding-right: 6px;
+}
+
+.chart-col:hover,
+.row-group-label:hover {
+  background: none;
+  color: var(--fg);
+  text-decoration: underline;
+}
+
+.kana-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 5px 0 3px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  min-height: 0;
+}
+
+.kana-cell:hover {
+  background: var(--surface);
+  border-color: var(--fg);
+}
+
+.cell-kana {
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.cell-romaji {
+  font-size: 10px;
+  color: var(--faint);
+}
+
+.kana-cell.selected {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--surface);
+}
+
+.kana-cell.selected .cell-romaji {
+  color: inherit;
+  opacity: 0.65;
+}
+
+.kana-cell.selected:hover {
+  background: var(--fg-hover);
+}
+
+/* Look-alikes */
+.lookalike-group + .lookalike-group {
+  margin-top: 14px;
+}
+
+.lookalike-title {
+  font-weight: bold;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.lookalike-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lookalike-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.lookalike-chip:hover {
+  background: var(--surface);
+  border-color: var(--fg);
+}
+
+.chip-kana {
+  font-size: 18px;
+  letter-spacing: 0.1em;
+}
+
+.chip-romaji {
+  font-size: 10px;
+  color: var(--faint);
+}
+
+.lookalike-chip.selected {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--surface);
+}
+
+.lookalike-chip.selected .chip-romaji {
+  color: inherit;
+  opacity: 0.65;
+}
+
+/* ---- Practice options ------------------------------------------------------- */
+
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px 20px;
+  margin-bottom: 12px;
+}
+
+.option-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.option-note {
+  font-size: 11px;
+  color: var(--faint);
+  margin-top: 4px;
+}
+
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.segmented label {
+  flex: 1 1 auto;
+  cursor: pointer;
+}
+
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented span {
+  display: block;
+  text-align: center;
+  white-space: nowrap;
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid var(--btn-border);
+  margin-left: -1px;
+  background: var(--btn-bg);
+}
+
+.segmented label:first-child span {
+  margin-left: 0;
+}
+
+.segmented label:hover span {
+  background: var(--btn-hover);
+}
+
+.segmented input:checked + span {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: var(--surface);
+  position: relative;
+}
+
+.segmented input:focus-visible + span {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+  position: relative;
+}
+
+/* ---- Review ------------------------------------------------------------------ */
+
+#weak-list table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+#weak-list td,
+#weak-list th {
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  text-align: left;
+}
+
+#weak-list th {
+  background: var(--th-bg);
+}
+
+#weak-list button {
+  padding: 1px 8px;
+  min-height: 0;
+}
+
+.weak-kana {
+  font-size: 18px;
+}
+
+/* ---- Sticky start bar ---------------------------------------------------------- */
+
+#start-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 10px 0;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+#start-bar .primary {
+  padding: 10px 20px;
+  font-size: 14px;
+}
+
+/* ---- Typing mode -------------------------------------------------------------- */
+
+#type-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+#type-input {
+  flex: 1;
+  min-width: 0;
+  font-family: monospace;
+  font-size: 18px;
+  padding: 8px 10px;
+  border: 2px solid var(--fg);
+  background: var(--surface);
+  color: var(--fg);
+  border-radius: 2px;
+}
+
+#type-input:focus {
+  outline: none;
+}
+
+#type-form button {
+  padding: 8px 14px;
+}
+
+#card-alt {
+  font-size: 13px;
+  color: var(--faint);
+  min-height: 1.2em;
+}
+
+#card-answer.answer-right {
+  color: var(--success);
+}
+
+#card-answer.answer-wrong {
+  color: var(--danger);
+}
+
+/* Wide screens: Basic chart beside Dakuten + Combo */
+@media (min-width: 700px) {
+  #panel-h,
+  #panel-k {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 28px;
+    align-items: start;
+  }
+
+  .chart-block:first-child {
+    grid-row: span 2;
+  }
+
+  .chart-block + .chart-block {
+    margin-top: 0;
+  }
+
+  .chart-block:nth-child(3) {
+    margin-top: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tab-ja {
+    display: none;
+  }
+
+  .option-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #start-bar .primary {
+    flex: 1;
+  }
+
+  #status-msg:empty {
+    display: none;
+  }
 }
