@@ -4,14 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Simple Kana Flash - Practice JP Kana</title>
+    <script>
+      // Apply the saved theme before first paint to avoid a flash
+      try {
+        const theme = localStorage.getItem("kana-theme");
+        if (theme) document.documentElement.dataset.theme = theme;
+      } catch {}
+    </script>
     <link rel="stylesheet" href="./styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/@hiseb/confetti@2.1.0/dist/confetti.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.27/dist/interact.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/motion@11.11.17/dist/motion.js"></script>
   </head>
   <body>
-    <h1>Kana Flashcards</h1>
+    <header class="topbar">
+      <h1>Kana Flashcards</h1>
+      <button id="themeToggle" type="button"></button>
+    </header>
 
     <section id="setup-section">
-      <h2>1. Select Characters</h2>
+      <h2>1. Select Characters <span id="selected-count" class="h2-meta"></span></h2>
       <div id="select-controls">
         <div>
           <label
@@ -68,7 +80,12 @@
           ><input type="radio" name="dir" value="en2jp" /> Romaji →
           Japanese</label
         >
+        <label><input type="radio" name="dir" value="mixed" /> Mixed</label>
       </div>
+      <label class="option-row"
+        ><input type="checkbox" id="show-type" /> Show hiragana/katakana label
+        on Japanese → Romaji cards too</label
+      >
     </section>
 
     <section>
@@ -79,29 +96,44 @@
           ><input type="checkbox" id="difficult-only" /> Practice difficult
           only</label
         >
-        <span id="status-msg" style="color: #c00; font-size: 13px"></span>
+        <span id="status-msg" role="status"></span>
       </div>
     </section>
 
     <section id="difficult-section">
       <h2>Difficult Characters</h2>
       <div id="difficult-list"><em>None yet.</em></div>
-      <button id="clearDifficultButton" style="margin-top: 6px">
+      <button id="clearDifficultButton">
         Clear All
       </button>
     </section>
 
     <!-- Fullscreen flashcard overlay -->
     <div id="flashcard-area">
-      <div id="progress"></div>
-      <div id="card">
+      <div id="progress-row">
+        <div id="progress" aria-live="polite"></div>
+        <div class="progress-buttons">
+          <button id="undoButton" title="Undo last mark (Backspace / Z)" disabled>↶ Undo</button>
+          <button id="endSessionButton">End Session</button>
+        </div>
+      </div>
+      <div id="progress-bar"><div id="progress-fill"></div></div>
+      <div id="card" role="button" tabindex="0" aria-label="Flashcard">
+        <div class="swipe-label swipe-label-left" aria-hidden="true">✗ wrong</div>
+        <div class="swipe-label swipe-label-right" aria-hidden="true">✓ correct</div>
+        <div id="card-type" hidden></div>
         <div id="card-prompt"></div>
         <div id="card-answer"></div>
         <div id="card-hint"></div>
       </div>
       <div id="card-actions">
         <button id="markWrongButton" class="danger">✗ Wrong</button>
-        <button id="endSessionButton">End Session</button>
+        <button id="markCorrectButton" class="success">✓ Correct</button>
+      </div>
+      <div id="kbd-hint">
+        <kbd>space</kbd>/<kbd>→</kbd> reveal, then correct &nbsp;·&nbsp;
+        <kbd>←</kbd>/<kbd>esc</kbd> wrong &nbsp;·&nbsp;
+        <kbd>⌫</kbd>/<kbd>z</kbd> undo
       </div>
     </div>
 
@@ -109,8 +141,12 @@
     <div id="sessionModal">
       <div class="session-modal-box">
         <div id="modalTitle"></div>
-        <div id="modalStats"></div>
-        <button id="modalClose">&times;</button>
+        <dl id="modalStats"></dl>
+        <div class="modal-buttons">
+          <button id="modalRetry" hidden></button>
+          <button id="modalDone" class="primary">Done</button>
+        </div>
+        <button id="modalClose" aria-label="Close">&times;</button>
       </div>
     </div>
 

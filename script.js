@@ -514,9 +514,14 @@ let cardIndex = 0;
 let revealed = false;
 let busy = false;
 let direction = "jp2en";
+let cardDirection = "jp2en"; // resolved per card when direction is "mixed"
+let history = []; // snapshots for undo
+let sessionMissed = new Set();
 let sessionWrong = 0;
 let sessionSeen = 0;
 let sessionTotal = 0;
+
+const isTouch = window.matchMedia("(pointer: coarse)").matches;
 
 function charKey(type, romaji, kana) {
   return `${type}:${romaji}:${kana}`;
@@ -538,6 +543,60 @@ function saveDifficult() {
   );
 }
 
+const SETTINGS_CHECKBOXES = [
+  "cb-hiragana",
+  "cb-katakana",
+  "cb-combo",
+  "cb-dakuten",
+  "difficult-only",
+  "show-type",
+];
+
+function saveSettings() {
+  const checks = {};
+  SETTINGS_CHECKBOXES.forEach((id) => {
+    checks[id] = document.getElementById(id).checked;
+  });
+  localStorage.setItem(
+    "kana-settings",
+    JSON.stringify({
+      selected: [...selected],
+      direction: document.querySelector('input[name="dir"]:checked').value,
+      checks,
+    }),
+  );
+}
+
+// Returns true if saved settings were found and applied
+function loadSettings() {
+  let settings;
+  try {
+    settings = JSON.parse(localStorage.getItem("kana-settings"));
+  } catch {
+    return false;
+  }
+  if (!settings) return false;
+
+  Object.entries(settings.checks || {}).forEach(([id, checked]) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = checked;
+  });
+  const dirInput = document.querySelector(
+    `input[name="dir"][value="${settings.direction}"]`,
+  );
+  if (dirInput) dirInput.checked = true;
+
+  const saved = new Set(settings.selected || []);
+  selected.clear();
+  document.querySelectorAll(".char-btn").forEach((btn) => {
+    const on = saved.has(btn.dataset.key);
+    if (on) selected.add(btn.dataset.key);
+    btn.classList.toggle("selected", on);
+  });
+  updateCounts();
+  return true;
+}
+
 // ---- Build UI -----------------------------------------------------------------
 
 function buildGroups() {
@@ -557,9 +616,12 @@ function buildSection(containerId, groups, type, comboOnly) {
     .forEach((group) => {
       const div = document.createElement("div");
       div.className = "row-group";
-      const lbl = document.createElement("div");
+      const lbl = document.createElement("button");
+      lbl.type = "button";
       lbl.className = "row-group-label";
+      lbl.title = "Select / deselect row";
       lbl.textContent = group.row;
+      lbl.onclick = () => toggleRow(div);
       div.appendChild(lbl);
       const grid = document.createElement("div");
       grid.className = "char-grid";
@@ -589,13 +651,29 @@ function toggleChar(key, btn) {
     selected.add(key);
     btn.classList.add("selected");
   }
+  updateCounts();
+  saveSettings();
 }
 
-function selectNone() {
-  selected.clear();
-  document
-    .querySelectorAll(".char-btn")
-    .forEach((btn) => btn.classList.remove("selected"));
+function toggleRow(rowEl) {
+  const btns = [...rowEl.querySelectorAll(".char-btn")];
+  const allSelected = btns.every((btn) => selected.has(btn.dataset.key));
+  btns.forEach((btn) => {
+    if (allSelected) selected.delete(btn.dataset.key);
+    else selected.add(btn.dataset.key);
+    btn.classList.toggle("selected", !allSelected);
+  });
+  updateCounts();
+  saveSettings();
+}
+
+function updateCounts() {
+  const difficultOnly = document.getElementById("difficult-only").checked;
+  const poolSize = difficultOnly ? difficult.size : selected.size;
+  document.getElementById("selected-count").textContent =
+    `(${selected.size} selected)`;
+  document.getElementById("sessionStartButton").textContent =
+    `Start Session (${poolSize})`;
 }
 
 function applyCheckboxes() {
@@ -632,6 +710,8 @@ function applyCheckboxes() {
     selected.add(btn.dataset.key);
     btn.classList.add("selected");
   });
+  updateCounts();
+  saveSettings();
 }
 
 let statusTimer = null;
@@ -656,11 +736,15 @@ function showSessionModal(completed) {
     ? "Session complete! 🎉"
     : "Session ended";
   document.getElementById("modalStats").innerHTML =
-    `Cards in deck: ${originalTotal}<br>` +
-    `Cards seen: ${seen}<br>` +
-    `Marked wrong: ${sessionWrong}<br>` +
-    `Accuracy: ${accuracy}%`;
+    `<dt>Cards in deck</dt><dd>${originalTotal}</dd>` +
+    `<dt>Cards seen</dt><dd>${seen}</dd>` +
+    `<dt>Marked wrong</dt><dd>${sessionWrong}</dd>` +
+    `<dt>Accuracy</dt><dd>${accuracy}%</dd>`;
+  const retryBtn = document.getElementById("modalRetry");
+  retryBtn.hidden = sessionMissed.size === 0;
+  retryBtn.textContent = `Retry missed (${sessionMissed.size})`;
   document.getElementById("sessionModal").classList.add("active");
+  document.getElementById("modalDone").focus();
 }
 
 function closeModal() {
@@ -687,14 +771,27 @@ function startSession() {
     return;
   }
 
+  beginDeck(pool);
+}
+
+function retryMissed() {
+  const pool = [...sessionMissed];
+  closeModal();
+  if (pool.length > 0) beginDeck(pool);
+}
+
+function beginDeck(pool) {
   deck = shuffle(pool);
   cardIndex = 0;
   revealed = false;
+  history = [];
+  sessionMissed = new Set();
   sessionWrong = 0;
   sessionSeen = 0;
   sessionTotal = deck.length;
   document.getElementById("flashcard-area").classList.add("active");
   showCard();
+  if (!isTouch) document.getElementById("card").focus();
 }
 
 function endSession() {
@@ -719,7 +816,7 @@ function parseKey(key) {
   return { type, romaji, kana };
 }
 
-function showCard() {
+function showCard(dirOverride) {
   if (cardIndex >= deck.length) {
     sessionSeen = cardIndex;
     document.getElementById("flashcard-area").classList.remove("active");
@@ -735,16 +832,37 @@ function showCard() {
   }
   sessionSeen = cardIndex;
   revealed = false;
+  cardDirection =
+    dirOverride ||
+    (direction === "mixed"
+      ? Math.random() < 0.5 ? "jp2en" : "en2jp"
+      : direction);
   const key = deck[cardIndex];
-  const { romaji, kana } = parseKey(key);
-  const prompt = direction === "jp2en" ? kana : romaji;
+  const { type, romaji, kana } = parseKey(key);
+  const promptEl = document.getElementById("card-prompt");
+  const answerEl = document.getElementById("card-answer");
+  promptEl.textContent = cardDirection === "jp2en" ? kana : romaji;
+  promptEl.lang = cardDirection === "jp2en" ? "ja" : "en";
+  answerEl.textContent = "";
+  answerEl.lang = cardDirection === "jp2en" ? "en" : "ja";
 
-  document.getElementById("card-prompt").textContent = prompt;
-  document.getElementById("card-answer").textContent = "";
-  document.getElementById("card-hint").textContent = "tap to reveal";
+  // In EN -> JP the romaji alone doesn't say which script to answer in,
+  // so the label is always shown there; for JP -> EN it's optional
+  const typeEl = document.getElementById("card-type");
+  typeEl.hidden =
+    cardDirection !== "en2jp" && !document.getElementById("show-type").checked;
+  typeEl.dataset.type = type;
+  typeEl.textContent = type === "h" ? "ひらがな · hiragana" : "カタカナ · katakana";
+
+  document.getElementById("card-hint").textContent = isTouch
+    ? "tap to reveal · swipe → correct, ← wrong"
+    : "click to reveal";
   document.getElementById("progress").textContent =
     `Card ${cardIndex + 1} / ${deck.length}` +
     (difficult.has(key) ? `  ⚑ difficult (×${difficult.get(key).count})` : "");
+  document.getElementById("progress-fill").style.width =
+    `${(cardIndex / deck.length) * 100}%`;
+  document.getElementById("undoButton").disabled = history.length === 0;
 }
 
 function handleCardClick() {
@@ -752,20 +870,65 @@ function handleCardClick() {
   if (!revealed) {
     const key = deck[cardIndex];
     const { romaji, kana } = parseKey(key);
-    const answer = direction === "jp2en" ? romaji : kana;
+    const answer = cardDirection === "jp2en" ? romaji : kana;
     document.getElementById("card-answer").textContent = answer;
-    document.getElementById("card-hint").textContent =
-      "tap again to mark correct & next";
+    document.getElementById("card-hint").textContent = isTouch
+      ? "tap or swipe → if correct, ← if wrong"
+      : "click again to mark correct & next";
     revealed = true;
   } else {
-    const cardEl = document.getElementById("card");
-    cardEl.classList.remove("correct");
-    void cardEl.offsetWidth;
-    cardEl.classList.add("correct");
-    cardEl.addEventListener("animationend", () => cardEl.classList.remove("correct"), { once: true });
-    cardIndex++;
-    showCard();
+    markCorrect();
   }
+}
+
+function pushHistory(key) {
+  history.push({
+    key,
+    cardIndex,
+    deckLength: deck.length,
+    cardDirection,
+    sessionWrong,
+    wasMissed: sessionMissed.has(key),
+    difficultPrev: difficult.has(key) ? { ...difficult.get(key) } : null,
+  });
+}
+
+function undo() {
+  if (busy || history.length === 0) return;
+  const snap = history.pop();
+  deck.length = snap.deckLength; // drops the re-queued copy after a "wrong"
+  cardIndex = snap.cardIndex;
+  sessionWrong = snap.sessionWrong;
+  if (!snap.wasMissed) sessionMissed.delete(snap.key);
+  if (snap.difficultPrev) difficult.set(snap.key, snap.difficultPrev);
+  else difficult.delete(snap.key);
+  saveDifficult();
+  renderDifficult();
+  updateCounts();
+  showCard(snap.cardDirection);
+}
+
+function markCorrect() {
+  if (busy) return;
+  const cardEl = document.getElementById("card");
+  cardEl.classList.remove("correct");
+  void cardEl.offsetWidth;
+  cardEl.classList.add("correct");
+  cardEl.addEventListener("animationend", () => cardEl.classList.remove("correct"), { once: true });
+
+  const key = deck[cardIndex];
+  pushHistory(key);
+  // Getting a difficult card right first time in a session works it off the list
+  if (difficult.has(key) && !sessionMissed.has(key)) {
+    const entry = difficult.get(key);
+    entry.count--;
+    if (entry.count <= 0) difficult.delete(key);
+    saveDifficult();
+    renderDifficult();
+    updateCounts();
+  }
+  cardIndex++;
+  showCard();
 }
 
 function markWrong() {
@@ -778,18 +941,21 @@ function markWrong() {
 
   const key = deck[cardIndex];
   const { romaji, kana } = parseKey(key);
+  pushHistory(key);
   const entry = difficult.get(key) || { romaji, kana, count: 0 };
   entry.count++;
   difficult.set(key, entry);
+  sessionMissed.add(key);
   sessionWrong++;
   saveDifficult();
   renderDifficult();
+  updateCounts();
   deck.push(key);
   cardIndex++;
 
   if (!revealed) {
     // Show the answer briefly before advancing to the next card
-    const answer = direction === "jp2en" ? romaji : kana;
+    const answer = cardDirection === "jp2en" ? romaji : kana;
     document.getElementById("card-answer").textContent = answer;
     document.getElementById("card-hint").textContent = "";
     busy = true;
@@ -832,23 +998,166 @@ function removeDifficult(key) {
   difficult.delete(key);
   saveDifficult();
   renderDifficult();
+  updateCounts();
 }
 
 function clearDifficult() {
   difficult.clear();
   saveDifficult();
   renderDifficult();
+  updateCounts();
+}
+
+// ---- Swipe -------------------------------------------------------------------
+// Swipe right = correct, swipe left = wrong. Dragging is handled by interact.js,
+// the spring-back / fly-out / enter animations by Motion. Taps still go through
+// handleCardClick.
+
+const SWIPE_THRESHOLD = 0.25; // fraction of card width
+let swipeX = 0;
+let swipeAnim = null;
+let lastSwipeAt = 0;
+
+function setSwipeVisual(dx, opacity = 1) {
+  const cardEl = document.getElementById("card");
+  const threshold = cardEl.offsetWidth * SWIPE_THRESHOLD;
+  const p = Math.min(Math.abs(dx) / threshold, 1);
+  cardEl.style.transform = `translateX(${dx}px) rotate(${dx / 25}deg)`;
+  cardEl.style.opacity = opacity;
+  cardEl.style.setProperty("--swipe-right", dx > 0 ? p : 0);
+  cardEl.style.setProperty("--swipe-left", dx < 0 ? p : 0);
+  cardEl.classList.toggle("swipe-ready-right", dx > 0 && p === 1);
+  cardEl.classList.toggle("swipe-ready-left", dx < 0 && p === 1);
+}
+
+function clearSwipeVisual() {
+  const cardEl = document.getElementById("card");
+  swipeX = 0;
+  cardEl.style.transform = "";
+  cardEl.style.opacity = "";
+  cardEl.style.removeProperty("--swipe-right");
+  cardEl.style.removeProperty("--swipe-left");
+  cardEl.classList.remove("swipe-ready-right", "swipe-ready-left");
+}
+
+function releaseSwipe() {
+  lastSwipeAt = Date.now();
+  const cardEl = document.getElementById("card");
+  const width = cardEl.offsetWidth;
+
+  if (Math.abs(swipeX) < width * SWIPE_THRESHOLD) {
+    // Not far enough: spring back to the centre
+    swipeAnim = Motion.animate(swipeX, 0, {
+      type: "spring",
+      stiffness: 500,
+      damping: 28,
+      onUpdate: (v) => setSwipeVisual((swipeX = v)),
+      onComplete: clearSwipeVisual,
+    });
+    return;
+  }
+
+  const dir = Math.sign(swipeX);
+  const target = dir * width * 1.3;
+  busy = true;
+  swipeAnim = Motion.animate(swipeX, target, {
+    duration: 0.22,
+    ease: "easeIn",
+    onUpdate: (v) => setSwipeVisual((swipeX = v), 1 - Math.abs(v / target)),
+  });
+  swipeAnim.then(() => {
+    clearSwipeVisual();
+    busy = false;
+    if (!document.getElementById("flashcard-area").classList.contains("active")) return;
+    if (dir > 0) markCorrect();
+    else markWrong();
+    // Bring the next card in
+    swipeAnim = Motion.animate(0, 1, {
+      type: "spring",
+      stiffness: 400,
+      damping: 26,
+      onUpdate: (v) => {
+        cardEl.style.opacity = Math.min(v, 1);
+        cardEl.style.transform = `scale(${0.9 + 0.1 * v})`;
+      },
+      onComplete: clearSwipeVisual,
+    });
+  });
+}
+
+function setupSwipe() {
+  interact("#card").draggable({
+    startAxis: "x",
+    lockAxis: "x",
+    cursorChecker: () => null,
+    listeners: {
+      start(e) {
+        if (busy) return e.interaction.stop();
+        swipeAnim?.stop();
+      },
+      move(e) {
+        if (busy) return;
+        setSwipeVisual((swipeX += e.dx));
+      },
+      end() {
+        if (!busy) releaseSwipe();
+      },
+    },
+  });
+}
+
+function onCardClick() {
+  // A swipe's pointerup can be followed by a synthetic click; ignore it
+  if (Date.now() - lastSwipeAt < 400) return;
+  handleCardClick();
+}
+
+// ---- Theme --------------------------------------------------------------------
+
+const ICON_SUN =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const ICON_MOON =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
+
+function currentTheme() {
+  return document.documentElement.dataset.theme || (systemDark.matches ? "dark" : "light");
+}
+
+function renderThemeToggle() {
+  const dark = currentTheme() === "dark";
+  const btn = document.getElementById("themeToggle");
+  // Show what clicking will switch to
+  btn.innerHTML = dark ? ICON_SUN : ICON_MOON;
+  btn.title = btn.ariaLabel = dark ? "Switch to light theme" : "Switch to dark theme";
+}
+
+function toggleTheme() {
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try {
+    localStorage.setItem("kana-theme", next);
+  } catch {}
+  renderThemeToggle();
 }
 
 // ---- Events -------------------------------------------------------------------
 
 function handleKeydown(e) {
+  if (document.getElementById("sessionModal").classList.contains("active")) {
+    if (e.key === "Escape") closeModal();
+    return;
+  }
   const flashcardArea = document.getElementById("flashcard-area");
   if (!flashcardArea.classList.contains("active")) return;
-  if (document.getElementById("sessionModal").classList.contains("active")) return;
 
-  if ([" ", "ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft", "Escape"].includes(e.key)) {
+  if ([" ", "ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft", "Escape", "Backspace"].includes(e.key)) {
     e.preventDefault();
+  }
+
+  if (e.key === "Backspace" || e.key === "z" || e.key === "Z") {
+    undo();
+    return;
   }
 
   if (e.key === " " || e.key === "ArrowDown" || e.key === "ArrowRight") {
@@ -862,14 +1171,27 @@ function registerEvents() {
   document
     .querySelectorAll(".cb-kanaselect")
     .forEach((n) => n.addEventListener("change", applyCheckboxes));
+  document.getElementById("difficult-only").addEventListener("change", () => {
+    updateCounts();
+    saveSettings();
+  });
+  document.getElementById("show-type").addEventListener("change", saveSettings);
+  document
+    .querySelectorAll('input[name="dir"]')
+    .forEach((n) => n.addEventListener("change", saveSettings));
 
   const buttonClickActionMap = {
     sessionStartButton: startSession,
     clearDifficultButton: clearDifficult,
-    card: handleCardClick,
+    card: onCardClick,
     markWrongButton: markWrong,
+    markCorrectButton: markCorrect,
     endSessionButton: endSession,
     modalClose: closeModal,
+    modalDone: closeModal,
+    modalRetry: retryMissed,
+    undoButton: undo,
+    themeToggle: toggleTheme,
   };
 
   for (const [buttonId, action] of Object.entries(buttonClickActionMap)) {
@@ -881,6 +1203,14 @@ function registerEvents() {
     if (btn) removeDifficult(btn.dataset.removeKey);
   });
 
+  setupSwipe();
+  systemDark.addEventListener("change", renderThemeToggle);
+
+  // Clicking the dimmed backdrop closes the modal
+  document.getElementById("sessionModal").addEventListener("click", (e) => {
+    if (e.target.id === "sessionModal") closeModal();
+  });
+
   document.addEventListener("keydown", handleKeydown);
 }
 
@@ -888,5 +1218,6 @@ function registerEvents() {
 
 buildGroups();
 renderDifficult();
-applyCheckboxes();
+if (!loadSettings()) applyCheckboxes();
+renderThemeToggle();
 registerEvents();
