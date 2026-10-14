@@ -1315,7 +1315,8 @@ function setupSwipe() {
   // Swiping is an extra; buttons and taps work without these libraries
   if (!window.interact || !window.Motion) return;
   interact("#card").draggable({
-    startAxis: "x",
+    // No startAxis: a finger's first few pixels are often slightly vertical,
+    // which would stop the drag from ever starting on touch screens
     lockAxis: "x",
     cursorChecker: () => null,
     listeners: {
